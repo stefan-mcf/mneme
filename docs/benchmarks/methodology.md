@@ -19,9 +19,10 @@ Initial comparators:
 
 - ShyftR local cell backend;
 - no-memory baseline;
+- simple local BM25 baseline;
 - mem0 OSS backend;
 - mem0 Cloud backend when credentials are explicitly supplied;
-- simple local BM25 or vector baseline after the first adapter harness is stable.
+- additional simple vector baseline only after the BM25 baseline and service-comparator plan are stable.
 
 A comparator may be marked `skipped` when its dependency or credentials are missing. Skips must appear in the report.
 
@@ -164,3 +165,16 @@ load local fixture -> optionally limit questions -> optionally reset per case ->
 Optional LLM judging is supplementary and disabled by default. The deterministic answerer and deterministic composite judge run first when answer evaluation is enabled. Only after that primary result exists may an explicitly configured optional provider add `metrics.llm_judge`.
 
 Provider configuration is never inferred from ambient credentials. Missing model, endpoint, key, or optional dependency is reported as a structured skip. Temperature is fixed at `0.0`, prompt template version and hash are recorded, raw JSONL output is guarded to local artifact directories, and cost is `unknown` unless a future explicit pricing table is configured.
+
+## Phase 14 simple baseline method
+
+The `simple-bm25` comparator is a local lexical retrieval baseline. It ingests
+benchmark messages, ranks them with deterministic BM25-style scoring, and
+returns message-level retrieval items to the same runner-owned answer and judge
+path as the other adapters. It does not use embeddings, service APIs, or hidden
+LLM calls.
+
+Use this baseline before service comparisons so ShyftR results can be compared
+against both no-memory and a simple local retrieval index. Reports that include
+`simple-bm25` remain fixture/local-run evidence unless they are produced from an
+approved standard-dataset run with reviewed data posture and claim text.

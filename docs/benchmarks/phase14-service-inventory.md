@@ -17,7 +17,8 @@ Repository checks:
 
 - `shyftr` and `no-memory` benchmark adapters are present in `src/shyftr/benchmarks/adapters/`.
 - `mem0 OSS` adapter code is present and skip-safe in `src/shyftr/benchmarks/adapters/mem0_backend.py`.
-- No simple BM25/vector, mem0 Cloud, Zep, Letta, or LangGraph Store benchmark adapters are present yet.
+- `simple-bm25` is present as a local lexical benchmark adapter.
+- No mem0 Cloud, Zep, Letta, or LangGraph Store benchmark adapters are present yet.
 - Local import probe on this machine found `mem0`, `zep_cloud`, `letta_client`, and `langgraph` absent.
 
 Public documentation references used for P14-0 posture:
@@ -39,7 +40,7 @@ Comparator status vocabulary must be one of: `ready`, `install-needed`, `credent
 |---|---|---|---|---|
 | shyftr | ready | `src/shyftr/benchmarks/adapters/shyftr_backend.py` implements the adapter contract and CLI includes it by default. | Stable local-cell benchmark adapter already used for Phase 11/12/13 harness runs. | Required comparator for all P14 runs. |
 | no-memory | ready | `src/shyftr/benchmarks/adapters/no_memory.py` is an explicit baseline adapter and CLI includes it by default. | Stable retrieval-floor comparator for each run. | Required no-memory baseline under the same runner-owned question path. |
-| simple local BM25/vector baseline | deferred | No benchmark backend adapter exists under `src/shyftr/benchmarks/adapters/`; sparse retrieval primitives exist outside the benchmark adapter surface. | Comparator is required before public comparison claims, but implementation is explicitly P14-1. | Add a dependency-light local BM25 first unless vector baseline becomes simpler and deterministic. |
+| simple local BM25 baseline | ready | `src/shyftr/benchmarks/adapters/simple_bm25.py` exists and CLI exposes `--include-simple-bm25`. | Dependency-light local lexical baseline is available for fixture/local runs. | Required before external service-comparator claims; remains fixture/local-run evidence until standard-dataset runs are approved. |
 | mem0 OSS | install-needed | `src/shyftr/benchmarks/adapters/mem0_backend.py` exists and package import probe reports `mem0` absent. | Adapter exists but needs local package/config setup before an `ok` run on this machine. | Public docs indicate OSS can be local with local LLM/embedder/vector-store choices, or credential-backed if cloud providers are selected. |
 | mem0 Cloud | credential-needed | No cloud-specific adapter currently exists in the repo. | Managed API requires explicit API credentials and project/account configuration before any run. | Keep off by default; never infer keys from ambient environment. |
 | Zep | credential-needed | No adapter currently exists in the repo; import probe reports `zep_cloud` absent. | Current supported Zep posture is cloud/API-key based; legacy community edition is deprecated. | Retrieval can be isolated from agent-loop answering, but adapter and credential gate are required. Graphiti is a related OSS project, not a drop-in Zep result. |
@@ -64,7 +65,7 @@ Dataset status vocabulary must be one of: `local-file-ready`, `obtain-needed`, `
 |---|---|---|---|---|---|
 | shyftr | ready | Adapter methods implemented. | local cell only | runner output guard under `artifacts/`, `reports/`, `tmp/` | Existing benchmark contract. |
 | no-memory | ready | Adapter methods implemented. | none | same runner output gates | Stable no-memory comparator. |
-| simple local BM25/vector baseline | deferred | not yet implemented | P14-1 design | not yet wired | First retrieval-only local comparator for P14-1. |
+| simple local BM25 baseline | ready | adapter methods implemented | none | runner output only | First retrieval-only local comparator for Phase 14. |
 | mem0 OSS | adapter present / dependency absent | skip-safe adapter present | optional `mem0` package and local/cloud sub-config | runner output only | First external comparator to validate after install approval. |
 | mem0 Cloud | credential-needed | not implemented | API key, endpoint/project config, cost policy | not implemented | Add only after explicit credential and cost approval. |
 | Zep | credential-needed | not implemented | hosted API package/key and endpoint config | not implemented | Cloud comparator; local Graphiti alternative would need separate scope. |
@@ -85,7 +86,7 @@ Dataset status vocabulary must be one of: `local-file-ready`, `obtain-needed`, `
 
 ## P14-0 status summary
 
-- Required baselines (`shyftr`, `no-memory`) are ready.
+- Required baselines (`shyftr`, `no-memory`) are ready, and `simple-bm25` is now available as the local retrieval-only baseline.
 - `mem0 OSS` has code and skip-safe behavior; dependency install is required to make it runnable on this machine.
 - Local dataset scaffolding for LongMemEval and LOCOMO-standard is ready for mapping/conversion; execution still needs approved local data.
 - BEAM is blocked pending license/attribution review.

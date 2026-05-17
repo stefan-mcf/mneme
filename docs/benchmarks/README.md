@@ -104,6 +104,29 @@ PYTHONPATH=.:src python scripts/run_memory_benchmark.py \
   --include-mem0-oss
 ```
 
+## Phase 14 P14-1 simple local retrieval baseline
+
+Phase 14 adds an opt-in local lexical retrieval baseline named `simple-bm25`.
+It is dependency-light, deterministic, and retrieval-only: it indexes benchmark
+messages in-process and never calls a remote service. The purpose is to show
+whether ShyftR beats a simple local lexical index before any service comparator
+claim is considered.
+
+Run with the simple baseline enabled:
+
+```bash
+PYTHONPATH=.:src python scripts/run_memory_benchmark.py \
+  --fixture synthetic-mini \
+  --run-id p14-simple-bm25-dev \
+  --output tmp/benchmarks/p14-simple-bm25-dev/report.json \
+  --top-k 1,3,5,10 \
+  --include-simple-bm25 \
+  --enable-answer-eval
+```
+
+This remains a fixture/local-run comparison only. It is not a full
+LongMemEval, LOCOMO-standard, BEAM, or service-comparator result.
+
 ## Dataset status / order
 
 - `synthetic-mini` (P11-1): deterministic in-code fixture, contract validation only.

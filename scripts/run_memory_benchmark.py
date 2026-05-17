@@ -5,6 +5,7 @@ from pathlib import Path
 
 from shyftr.benchmarks.adapters.no_memory import NoMemoryBackendAdapter
 from shyftr.benchmarks.adapters.shyftr_backend import ShyftRBackendAdapter
+from shyftr.benchmarks.adapters.simple_bm25 import SimpleBM25BackendAdapter
 from shyftr.benchmarks.fixture import resolve_benchmark_fixture
 from shyftr.benchmarks.runner import run_fixture_benchmark
 
@@ -117,6 +118,11 @@ def main() -> int:
         help="Include the optional mem0 OSS/local backend adapter (default: off; skipped if mem0 not installed).",
     )
     parser.add_argument(
+        "--include-simple-bm25",
+        action="store_true",
+        help="Include the local dependency-light simple BM25 retrieval baseline adapter (default: off).",
+    )
+    parser.add_argument(
         "--enable-answer-eval",
         action="store_true",
         help="Enable runner-owned deterministic answer evaluation for fixture-level runs.",
@@ -179,6 +185,9 @@ def main() -> int:
         ),
         NoMemoryBackendAdapter(),
     ]
+
+    if bool(args.include_simple_bm25):
+        adapters.append(SimpleBM25BackendAdapter())
 
     if bool(args.include_mem0_oss):
         # Import is local to keep optional dependency out of default path.
