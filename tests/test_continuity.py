@@ -352,6 +352,37 @@ def test_continuity_cli_pack_feedback_and_eval(tmp_path: Path) -> None:
     assert json.loads(eval_result.stdout)["status"] == "pass"
 
 
+def test_continuity_status_reports_malformed_ledger_rows_without_failing(tmp_path: Path) -> None:
+    memory_cell = init_cell(tmp_path, "memory-cell", cell_type="memory")
+    continuity_cell = init_cell(tmp_path, "continuity-cell", cell_type="continuity")
+    _seed_memory(memory_cell)
+    assemble_continuity_pack(
+        ContinuityPackRequest(
+            memory_cell_path=str(memory_cell),
+            continuity_cell_path=str(continuity_cell),
+            runtime_id="synthetic-runtime",
+            session_id="status-session",
+            compaction_id="status-cmp",
+            query="runtime context compression continuity pack",
+            mode="advisory",
+            max_items=2,
+            max_tokens=80,
+            write=True,
+        )
+    )
+    packs_ledger = continuity_cell / "ledger" / "continuity_packs.jsonl"
+    packs_ledger.write_text(packs_ledger.read_text(encoding="utf-8") + '{"truncated": true\n', encoding="utf-8")
+
+    from shyftr.continuity import continuity_status
+
+    status = continuity_status(continuity_cell)
+
+    assert status["status"] == "ok"
+    assert status["ledger_health"] == "degraded"
+    assert status["counts"]["packs"] == 1
+    assert status["invalid_counts"]["packs"] == 1
+
+
 def test_invalid_continuity_mode_and_authority_are_rejected(tmp_path: Path) -> None:
     memory_cell = init_cell(tmp_path, "memory-cell", cell_type="memory")
     continuity_cell = init_cell(tmp_path, "continuity-cell", cell_type="continuity")

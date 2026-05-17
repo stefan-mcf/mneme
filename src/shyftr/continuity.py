@@ -507,12 +507,14 @@ def continuity_status(continuity_cell_path: PathLike) -> Dict[str, Any]:
         "promotion_proposals": cell / "ledger" / "continuity_promotion_proposals.jsonl",
         "eval_reports": cell / "ledger" / "continuity_eval_reports.jsonl",
     }
-    counts = {name: _count_jsonl(path) for name, path in ledgers.items()}
+    stats = {name: _jsonl_stats(path) for name, path in ledgers.items()}
     return {
         "status": "ok",
         "continuity_cell_id": _read_cell_id(cell),
         "cell_path": str(cell),
-        "counts": counts,
+        "counts": {name: ledger_stats["valid"] for name, ledger_stats in stats.items()},
+        "invalid_counts": {name: ledger_stats["invalid"] for name, ledger_stats in stats.items()},
+        "ledger_health": "ok" if all(ledger_stats["invalid"] == 0 for ledger_stats in stats.values()) else "degraded",
         "review_gated_promotions": True,
         "supported_modes": list(CONTINUITY_MODES),
         "reserved_modes": list(RESERVED_MODES),
@@ -641,9 +643,26 @@ def _read_cell_id(cell_path: Path) -> str:
 
 
 def _count_jsonl(path: Path) -> int:
+    return _jsonl_stats(path)["valid"]
+
+
+def _jsonl_stats(path: Path) -> Dict[str, int]:
     if not path.exists():
-        return 0
-    return sum(1 for _line, _record in read_jsonl(path))
+        return {"valid": 0, "invalid": 0}
+    valid = 0
+    invalid = 0
+    with path.open("r", encoding="utf-8") as ledger_file:
+        for line in ledger_file:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                json.loads(stripped)
+            except json.JSONDecodeError:
+                invalid += 1
+                continue
+            valid += 1
+    return {"valid": valid, "invalid": invalid}
 
 
 def _now() -> str:

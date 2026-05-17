@@ -19,7 +19,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union
 import uuid
 
 from .episodes import get_latest_episode, propose_episode
-from .ledger import append_jsonl, read_jsonl
+from .ledger import append_jsonl, read_jsonl, read_jsonl_tolerant
 from .memory_classes import resolve_memory_type
 from .models import Episode
 from .pack import estimate_tokens
@@ -1465,7 +1465,7 @@ def _read_cell_id(cell_path: Path) -> str:
 def _read_jsonl_if_exists(path: Path) -> List[Dict[str, Any]]:
     if not path.exists():
         return []
-    return [record for _, record in read_jsonl(path)]
+    return [record for _, record in read_jsonl_tolerant(path)]
 
 
 def _count_jsonl(path: Path) -> int:

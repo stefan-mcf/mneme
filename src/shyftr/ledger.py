@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, Iterator, Tuple, Union
+from typing import Any, Dict, Iterator, Literal, Tuple, Union
 
 PathLike = Union[str, Path]
 JsonRecord = Dict[str, Any]
@@ -57,13 +57,32 @@ def _last_row_hash(path: Path) -> str:
 
 def read_jsonl(path: PathLike) -> Iterator[Tuple[int, JsonRecord]]:
     """Yield non-blank JSONL records as (line_number, decoded_record)."""
+    yield from _iter_jsonl(path, on_error="raise")
+
+
+def read_jsonl_tolerant(path: PathLike) -> Iterator[Tuple[int, JsonRecord]]:
+    """Yield valid JSONL records and skip malformed rows.
+
+    Use for best-effort diagnostic/runtime surfaces where one truncated legacy row
+    should not brick the whole status or resume path. Verification and invariant
+    checks should keep using strict ``read_jsonl``.
+    """
+    yield from _iter_jsonl(path, on_error="skip")
+
+
+def _iter_jsonl(path: PathLike, *, on_error: Literal["raise", "skip"]) -> Iterator[Tuple[int, JsonRecord]]:
     ledger_path = Path(path)
     with ledger_path.open("r", encoding="utf-8") as ledger_file:
         for line_number, line in enumerate(ledger_file, start=1):
             stripped = line.strip()
             if not stripped:
                 continue
-            record = json.loads(stripped)
+            try:
+                record = json.loads(stripped)
+            except json.JSONDecodeError:
+                if on_error == "skip":
+                    continue
+                raise
             record.pop("row_hash", None)
             record.pop("previous_row_hash", None)
             yield line_number, record

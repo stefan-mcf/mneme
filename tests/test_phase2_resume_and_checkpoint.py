@@ -11,6 +11,7 @@ from shyftr.live_context import (
     LiveContextCaptureRequest,
     build_carry_state_checkpoint,
     capture_live_context,
+    latest_carry_state_checkpoint,
     reconstruct_resume_state,
 )
 from shyftr.provider.memory import remember
@@ -93,7 +94,31 @@ def test_checkpoint_shape_is_deterministic_bounded_and_written_when_requested(tm
     assert rows[-1]["sections"] == payload["sections"]
 
 
-def test_continuity_pack_merges_carry_state_and_memory_without_losing_memory_only_behavior(tmp_path: Path) -> None:
+def test_latest_carry_state_checkpoint_skips_malformed_legacy_rows(tmp_path: Path) -> None:
+    live_cell = init_cell(tmp_path, "live", cell_type="live_context")
+    continuity_cell = init_cell(tmp_path, "continuity", cell_type="continuity")
+    _capture(live_cell, kind="goal", content="Recover carry state after a truncated legacy row.")
+    checkpoint = build_carry_state_checkpoint(
+        CarryStateCheckpointRequest(
+            live_cell_path=str(live_cell),
+            continuity_cell_path=str(continuity_cell),
+            runtime_id="runtime",
+            session_id="session",
+            max_items=4,
+            max_tokens=80,
+            write=True,
+        )
+    )
+    checkpoints_ledger = continuity_cell / "ledger" / "continuity_checkpoints.jsonl"
+    checkpoints_ledger.write_text('{"truncated": true\n' + checkpoints_ledger.read_text(encoding="utf-8"), encoding="utf-8")
+
+    latest = latest_carry_state_checkpoint(continuity_cell, runtime_id="runtime", session_id="session")
+
+    assert latest is not None
+    assert latest.checkpoint_id == checkpoint.checkpoint_id
+
+
+def test_continuity_pack_with_live_cell_skips_malformed_checkpoint_rows(tmp_path: Path) -> None:
     memory_cell = init_cell(tmp_path, "memory", cell_type="memory")
     continuity_cell = init_cell(tmp_path, "continuity", cell_type="continuity")
     live_cell = init_cell(tmp_path, "live", cell_type="live_context")
@@ -118,6 +143,8 @@ def test_continuity_pack_merges_carry_state_and_memory_without_losing_memory_onl
 
     _capture(live_cell, kind="goal", content="Resume active implementation context for Phase 2.")
     _capture(live_cell, kind="error", content="Prior context was compacted before the active goal was recorded.", status="open")
+    checkpoints_ledger = continuity_cell / "ledger" / "continuity_checkpoints.jsonl"
+    checkpoints_ledger.write_text('{"legacy": "truncated"\n', encoding="utf-8")
 
     mixed = assemble_continuity_pack(
         ContinuityPackRequest(
