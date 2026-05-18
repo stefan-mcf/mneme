@@ -50,6 +50,24 @@ cells/core/memory/
 
 This lets ShyftR handle ordinary assistant memory while using the same review, promotion, retrieval, and recursive distillation machinery as project, team, agent, and domain cells.
 
+## Manifest contract
+
+Each initialized cell writes its canonical manifest to:
+
+```text
+<cell>/config/cell_manifest.json
+```
+
+That manifest is the source of truth for `cell_id` and `cell_type`.
+
+Runtime compatibility rule:
+
+- canonical reads prefer `<cell>/config/cell_manifest.json`
+- legacy `<cell>/manifest.json` is accepted only as a compatibility fallback
+- if both files exist, the canonical `config/cell_manifest.json` wins
+
+New code should write and document only the canonical config-path manifest.
+
 ## Lifecycle
 
 Core ShyftR code should depend on the portable lifecycle:

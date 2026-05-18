@@ -32,7 +32,7 @@ from .frontier import project_confidence_state
 from .memory_classes import class_spec, resolve_memory_type
 from .models import EPISODE_KINDS
 from .policy import check_source_boundary  # noqa: F401 (re-exported for downstream)
-from .privacy import AccessPolicy, is_charge_export_allowed, redact_charge_projection
+from .privacy import AccessPolicy, is_charge_export_allowed, redact_anchor_projection, redact_charge_projection
 from .retrieval.hybrid import (
     NEGATIVE_SPACE_KINDS,
     CandidateItem,
@@ -602,14 +602,14 @@ def _build_candidate_from_episode(record: Dict[str, Any]) -> CandidateItem:
         statement = f"{statement} ({timeframe})"
     if record.get("outcome"):
         statement = f"{statement} Outcome: {record['outcome']}."
-    anchors = {
+    anchors = redact_anchor_projection({
         "live_context_entry_ids": record.get("live_context_entry_ids", []),
         "memory_ids": record.get("memory_ids", []),
         "feedback_ids": record.get("feedback_ids", []),
         "resource_refs": record.get("resource_refs", []),
         "grounding_refs": record.get("grounding_refs", []),
         "artifact_refs": record.get("artifact_refs", []),
-    }
+    })
     return CandidateItem(
         item_id=record.get("episode_id", ""),
         cell_id=record.get("cell_id", ""),

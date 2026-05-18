@@ -103,11 +103,31 @@ def _redact_nested_mapping(value: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(item, dict):
             projected[key] = _redact_nested_mapping(item)
             continue
+        if isinstance(item, list):
+            projected[key] = _redact_nested_sequence(item)
+            continue
         if key in SENSITIVE_NESTED_FIELDS:
             projected[key] = "[REDACTED]"
             continue
         projected[key] = item
     return projected
+
+
+def _redact_nested_sequence(values: List[Any]) -> List[Any]:
+    projected: List[Any] = []
+    for item in values:
+        if isinstance(item, dict):
+            projected.append(_redact_nested_mapping(item))
+            continue
+        if isinstance(item, list):
+            projected.append(_redact_nested_sequence(item))
+            continue
+        projected.append(item)
+    return projected
+
+
+def redact_anchor_projection(anchors: Dict[str, Any]) -> Dict[str, Any]:
+    return _redact_nested_mapping(anchors)
 
 
 def filter_charge_records(

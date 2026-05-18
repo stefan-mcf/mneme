@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 from uuid import uuid4
 
 from shyftr.episodes import list_latest_episodes
+from shyftr.layout import read_cell_id
 from shyftr.ledger import append_jsonl
 from shyftr.ledger_state import latest_by_key
 from shyftr.memory_classes import class_spec, infer_memory_type, resolve_memory_type, validate_resource_memory
@@ -22,6 +23,7 @@ from shyftr.mutations import (
     replace_charge,
 )
 from shyftr.policy import check_provider_memory_policy, evaluate_direct_write_policy
+from shyftr.privacy import redact_anchor_projection
 from shyftr.profile import ProfileProjection, build_profile
 from shyftr.promote import promote_fragment
 from shyftr.review import approve_fragment
@@ -388,14 +390,14 @@ def search(
                     selection_rationale="episode_history" if not requested_memory_types else "explicit_episodic",
                     provenance={
                         "episode_id": episode.episode_id,
-                        "anchors": {
+                        "anchors": redact_anchor_projection({
                             "live_context_entry_ids": list(episode.live_context_entry_ids),
                             "memory_ids": list(episode.memory_ids),
                             "feedback_ids": list(episode.feedback_ids),
                             "resource_refs": [ref.to_dict() for ref in episode.resource_refs],
                             "grounding_refs": list(episode.grounding_refs),
                             "artifact_refs": list(episode.artifact_refs),
-                        },
+                        }),
                         "timeframe": {"started_at": episode.started_at, "ended_at": episode.ended_at},
                     },
                 )
@@ -531,11 +533,7 @@ def import_snapshot(cell_path: PathLike, snapshot: Dict[str, Any]) -> Dict[str, 
 
 
 def _read_cell_id(cell: Path) -> str:
-    manifest_path = cell / "manifest.json"
-    if manifest_path.exists():
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-        return str(payload.get("cell_id") or cell.name)
-    return cell.name
+    return read_cell_id(cell)
 
 
 def _require_text(value: str, name: str) -> str:

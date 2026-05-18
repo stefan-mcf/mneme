@@ -19,6 +19,14 @@ Key constraints:
 
 Run locally:
 
+Quick test gate (matches CI tranche B1):
+
+```bash
+PYTHONPATH=.:src pytest -q --maxfail=1
+```
+
+Benchmark harness:
+
 ```bash
 PYTHONPATH=.:src python scripts/run_memory_benchmark.py \
   --run-id local-dev \

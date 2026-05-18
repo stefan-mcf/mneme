@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 
 from shyftr.episodes import append_episode, approve_episode, search_episode_capsules
 from shyftr.layout import init_cell
-from shyftr.models import Episode
+from shyftr.models import Episode, ResourceRef
 from shyftr.pack import LoadoutTaskInput, assemble_pack
 from shyftr.provider.memory import remember, search
 
@@ -16,6 +17,7 @@ def _episode(
     sensitivity: str = "internal",
     title: str = "Previous importer failure",
     summary: str = "The previous importer attempt failed, recovered with a bounded retry, and produced artifact evidence.",
+    resource_refs: list[ResourceRef] | None = None,
 ) -> Episode:
     return Episode(
         episode_id=episode_id,
@@ -33,6 +35,7 @@ def _episode(
         sensitivity=sensitivity,
         created_at="2026-05-16T00:11:00+00:00",
         live_context_entry_ids=["live-1"],
+        resource_refs=resource_refs or [],
         grounding_refs=["grounding-1"],
         artifact_refs=["artifact-1"],
     )
@@ -290,6 +293,71 @@ def test_pack_can_include_private_episodes_when_allowed(tmp_path: Path) -> None:
 
     assert [item.item_id for item in assembled.items] == ["episode-private-allowed"]
     assert "Private authorized retry detail" not in assembled.items[0].statement
+
+
+def test_provider_search_redacts_redacted_episode_anchor_resource_refs(tmp_path: Path) -> None:
+    cell = _cell(tmp_path)
+    base = _episode(
+        episode_id="episode-redacted-anchor-search",
+        summary="Anchor detail should remain inspectable without revealing locator.",
+        resource_refs=[
+            ResourceRef(
+                ref_type="artifact",
+                locator="/private/customer-a/episode-anchor.txt",
+                label="episode anchor artifact",
+                content_digest="sha256:episodeanchor",
+                origin="pytest",
+            )
+        ],
+    )
+    approve_episode(cell, base)
+    append_episode(cell, Episode.from_dict({**base.to_dict(), "status": "redacted", "created_at": "2026-05-16T00:13:00+00:00"}))
+
+    results = search(cell, "episode-redacted-anchor-search redacted", memory_types=["episodic"])
+
+    assert [result.memory_id for result in results] == ["episode-redacted-anchor-search"]
+    resource_ref = results[0].provenance["anchors"]["resource_refs"][0]
+    assert resource_ref["label"] == "episode anchor artifact"
+    assert resource_ref["locator"] == "[REDACTED]"
+    assert resource_ref["content_digest"] == "[REDACTED]"
+
+
+def test_pack_redacts_sensitive_episode_anchor_resource_refs_when_allowed(tmp_path: Path) -> None:
+    cell = _cell(tmp_path)
+    approve_episode(
+        cell,
+        _episode(
+            episode_id="episode-private-anchor-pack",
+            sensitivity="private",
+            summary="Private anchor detail.",
+            resource_refs=[
+                ResourceRef(
+                    ref_type="artifact",
+                    locator="/private/customer-a/episode-anchor-pack.txt",
+                    label="episode pack anchor artifact",
+                    content_digest="sha256:episodepackanchor",
+                    origin="pytest",
+                )
+            ],
+        ),
+    )
+
+    assembled = assemble_pack(
+        LoadoutTaskInput(
+            cell_path=str(cell),
+            query="episode-private-anchor-pack",
+            task_id="task-1",
+            memory_types=["episodic"],
+            allowed_sensitivity=["public", "internal", "private"],
+            dry_run=True,
+        )
+    )
+
+    assert [item.item_id for item in assembled.items] == ["episode-private-anchor-pack"]
+    anchors = json.loads(assembled.items[0].rationale)["anchors"]
+    assert anchors["resource_refs"][0]["label"] == "episode pack anchor artifact"
+    assert anchors["resource_refs"][0]["locator"] == "[REDACTED]"
+    assert anchors["resource_refs"][0]["content_digest"] == "[REDACTED]"
 
 
 def test_pack_filters_internal_episodes_from_public_only_loadout(tmp_path: Path) -> None:

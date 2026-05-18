@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from shyftr.layout import read_cell_id
 from shyftr.models import Trace
 from shyftr.mutations import active_charge_ids, approved_traces
 
@@ -153,14 +154,7 @@ def _render_compact_markdown(cell_id: str, entries: List[Dict[str, Any]], max_to
 
 
 def _read_cell_id(cell: Path) -> str:
-    manifest_path = cell / "config" / "cell_manifest.json"
-    if not manifest_path.exists():
-        raise ValueError(f"Cell manifest does not exist: {manifest_path}")
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    cell_id = manifest.get("cell_id")
-    if not cell_id:
-        raise ValueError("Cell manifest is missing cell_id")
-    return str(cell_id)
+    return read_cell_id(cell)
 
 
 def _json_dump(payload: Dict[str, Any]) -> str:
