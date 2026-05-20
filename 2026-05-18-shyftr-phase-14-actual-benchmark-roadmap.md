@@ -348,7 +348,14 @@ Gap taxonomy:
 - latency/cost issue;
 - timeout/retry issue;
 - comparator API mismatch;
-- report/schema insufficiency.
+- report/schema insufficiency;
+- review-gate / authority-mode ablation gap;
+- candidate/advisory retrieval gap;
+- benchmark-adapter simplification caveat.
+
+Authority-mode synthesis requirement:
+
+Benchmark synthesis must label the ShyftR mode used for each run: benchmark-index, approved-memory, candidate/advisory, pack/loadout, or mixed/unsupported. If a comparator wins because it treats all input as directly searchable memory, record that as a direct-ingest comparator behavior and a fairness caveat rather than weakening ShyftR's review-gated durable-memory doctrine. For every important ShyftR miss, classify whether the evidence was absent from mapping, unindexed, low-ranked, present only as an unapproved candidate/proposal, suppressed by lifecycle/privacy/review policy, or retrieved but not used by the answerer.
 
 Backlog ranking formula:
 

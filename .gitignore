@@ -36,3 +36,6 @@ docs/sources/
 docs/feeds/
 docs/operations/
 May18DeepResearch+Roadmap/
+tmp/
+artifacts/benchmarks/
+{run_id}/

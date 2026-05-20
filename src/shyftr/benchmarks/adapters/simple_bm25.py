@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import re
 import time
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -59,6 +59,7 @@ class SimpleBM25BackendAdapter:
         self._df: Dict[str, int] = {}
         self._N = 0
         self._avgdl = 0.0
+        self._total_len = 0
         self._ingested_message_ids: List[str] = []
 
     def _record_ingest_ms(self, elapsed_ms: float) -> None:
@@ -84,6 +85,7 @@ class SimpleBM25BackendAdapter:
         self._df = {}
         self._N = 0
         self._avgdl = 0.0
+        self._total_len = 0
         self._ingested_message_ids = []
 
     def ingest_conversation(self, conversation: BenchmarkConversation) -> None:
@@ -109,16 +111,14 @@ class SimpleBM25BackendAdapter:
             self._docs.append(doc)
             self._ingested_message_ids.append(doc.message_id)
 
-        # Recompute DF/avgdl deterministically after each ingest call.
+            # Incremental DF/avgdl bookkeeping.
+            self._total_len += doc.length
+            for term in set(doc.tokens):
+                self._df[term] = int(self._df.get(term, 0)) + 1
+
+        # Derive corpus stats from incremental bookkeeping.
         self._N = len(self._docs)
-        df: Dict[str, int] = defaultdict(int)
-        total_len = 0
-        for d in self._docs:
-            total_len += d.length
-            for term in set(d.tokens):
-                df[term] += 1
-        self._df = dict(df)
-        self._avgdl = (float(total_len) / float(self._N)) if self._N else 0.0
+        self._avgdl = (float(self._total_len) / float(self._N)) if self._N else 0.0
 
         elapsed_ms = (time.perf_counter() - started) * 1000.0
         self._stats = AdapterCostLatencyStats(

@@ -64,7 +64,13 @@ The `dataset` object should include:
 - `conversation_count`: count of conversations or sessions ingested;
 - `question_count`: count of evaluated questions;
 - `fixture_path`: path or documented locator, public-safe only;
-- `contains_private_data`: boolean, must be false for committed reports.
+- `contains_private_data`: boolean, must be false for committed/public reports;
+- `license_id`: SPDX-style license identifier when known, for example `MIT` or `CC-BY-SA-4.0`;
+- `license_text`: short public-safe license note when no SPDX identifier is available;
+- `attribution`: required attribution text for datasets that impose attribution or share-alike obligations;
+- `source_url`: public dataset/repository URL when known;
+- `source_commit`: dataset repository commit/revision when known;
+- `claim_limit`: dataset/run-specific scope boundary, especially for private subsets or synthetic local fixtures.
 
 ## Fairness object
 

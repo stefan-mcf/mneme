@@ -189,3 +189,36 @@ docs/benchmarks/phase13-optional-llm-judge-gating.md
 ```
 
 The default provider is `none`: no SDK import, credential lookup, or network call. When explicitly enabled, optional LLM judging is supplementary to deterministic answer evaluation and records skipped status when credentials, endpoint, or optional dependency are unavailable.
+
+## Phase D local benchmark baseline
+
+Phase D produced a local, claim-limited baseline for future ShyftR improvement comparisons.
+
+Human-readable report:
+
+```text
+docs/benchmarks/phaseD-benchmark-report.html
+```
+
+Repo-local report copy:
+
+```text
+reports/benchmarks/phaseD-benchmark-report.html
+```
+
+Accepted JSON evidence:
+
+```text
+reports/benchmarks/phaseD-longmemeval-scaled50-fast-core.json
+reports/benchmarks/phaseD-longmemeval-tiny10-fast-core-mem0.json
+reports/benchmarks/phaseD-locomo-tiny-local-fast-core.json
+reports/benchmarks/phaseD-beam-tiny-local-fast-core.json
+```
+
+Closeout:
+
+```text
+2026-05-18-shyftr-phase-d-confident-completion-closeout.md
+```
+
+Claim scope: this is a local baseline and comparison anchor. It supports future internal before/after comparisons against the listed reports. It does not support a public leaderboard claim, hosted/production claim, official LOCOMO/BEAM standard claim, or a claim that benchmark-harness throughput equals durable product-path ledger/search throughput.

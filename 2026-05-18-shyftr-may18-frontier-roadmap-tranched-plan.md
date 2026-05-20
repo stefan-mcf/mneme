@@ -73,10 +73,20 @@ Bounded current research found these practical constraints:
 - Vector backend choices should stay local-first: sqlite-vec for simple SQLite-native baseline, LanceDB for embedded production-scale local vector storage, Qdrant Edge as a possible HNSW local option, pgvector only if a Postgres deployment becomes justified. URLs: `https://github.com/asg017/sqlite-vec`, `https://github.com/lancedb/lancedb`, `https://qdrant.tech/documentation/edge/`, `https://github.com/pgvector/pgvector`.
 - Bitemporal design should separate valid time from recorded time and represent supersession explicitly. Reference: `https://martinfowler.com/articles/bitemporal-history.html`.
 - Hierarchical memory systems worth borrowing from: MemMachine's working/episodic/profile split and graph-like episodic memory; TeleMem-style batch consolidation; MemFactory-style policy learning.
+- AgentMemory-inspired surface parity should be treated as an ergonomics and adapter addendum, not a competing execution track. Source artifact: `2026-05-18-shyftr-agentmemory-inspired-tranched-plan.md`. Absorb its requirements into this roadmap only where phase dependencies are safe: B for parity inventory, D/E/F for retrieval-mode reporting and productization, G for hooks/working-context/replay, I for operations plane, and J/future work for team overlays and multimodal/frontier extensions.
 
 ## 3. Program architecture
 
 The program has ten phases. Each phase can be implemented as one or more commits. Each tranche should leave the repo in a reviewable state with exact evidence.
+
+AgentMemory-inspired integration map:
+
+- Advanced operator surface parity is not a new early phase. Add a Phase B inventory/contract pass, then implement missing read-only parity only when the owning substrate is stable.
+- Retrieval-mode productization belongs in Phase D reports plus Phase E/F retrieval work, not in a separate surface-count parity track.
+- Ambient evidence hooks and branch-aware working context belong in Phase G after consolidation contracts and retention clocks exist.
+- Service-grade diagnostics, retention, backup/export/import, and health surfaces belong in Phase I unless a local API safety issue requires moving a narrow item earlier.
+- Team/multi-agent overlays remain a late Phase J or post-roadmap spike until Phase I governance and per-cell authority are proven.
+- Multimodal and replay-rich frontier extensions stay split across F/G/J according to their real dependency: graph-temporal in F, replay/continuity debugging in G, file/image observation memory in J.
 
 - Phase A: Baseline reconciliation and source-linked planning
 - Phase B: Contract, CI, and privacy stabilization
@@ -442,6 +452,53 @@ python scripts/public_readiness_check.py
 git diff --check
 ```
 
+### B4. AgentMemory-inspired operator surface parity inventory
+
+Objective: inventory read-only operator surfaces across CLI, MCP, HTTP, and console before adding any new behavior. This absorbs AgentMemory-inspired surface parity as an audit/contract pass, not a new execution track.
+
+Likely files:
+
+- `src/shyftr/cli.py`
+- `src/shyftr/mcp_server.py`
+- `src/shyftr/server.py`
+- `src/shyftr/console_api.py`
+- `docs/mcp.md`
+- `docs/api.md` or current local API docs
+- create or update `docs/status/operator-surface-parity.md`
+
+Surface inventory must cover:
+
+- proposal inbox / review export;
+- audit summary and diagnostics;
+- carry-state checkpoint inspection and resume reconstruction;
+- pack/loadout assembly inspection;
+- frontier review surfaces;
+- replay/timeline inspection if present, or explicit gap if absent.
+
+Steps:
+
+1. Read the four operator-surface files and list existing commands/tools/endpoints/functions.
+2. Produce a matrix with columns: capability, CLI, MCP, HTTP/server, console, write behavior, review gate, missing parity, owning future phase.
+3. Add only documentation or thin read-only parity if the underlying substrate already exists and the change is low risk.
+4. Route missing substrate-backed work to its owning phase: G for replay/carry/consolidation, I for operations/privacy/export/health, E/F for retrieval mode inspection.
+5. Do not add automatic durable-memory writes, new hooks, hosted-service behavior, or broad UX claims in B4.
+
+Focused verification:
+
+```bash
+test -f docs/status/operator-surface-parity.md
+python - <<'PY'
+from pathlib import Path
+t=Path('docs/status/operator-surface-parity.md').read_text().lower()
+for s in ['cli', 'mcp', 'http', 'console', 'proposal', 'audit', 'checkpoint', 'pack']:
+    assert s in t
+print('operator surface parity matrix ok')
+PY
+PYTHONPATH=.:src pytest -q tests/test_mcp_server.py tests/test_server.py
+```
+
+Stop boundary: parity inventory and safe read-only/documentation improvements only; behavior-heavy surfaces wait for their owning phases.
+
 ## 7. Phase C — materialized state and incremental indexing
 
 Goal: stop replaying the entire ledger/index stack on every retrieval-heavy operation.
@@ -582,13 +639,26 @@ Goal: create defensible evidence early enough to steer the roadmap, then keep re
 
 This phase extends the existing Phase 14 roadmap, not replaces it. If Phase 14 artifacts are already partly complete, preserve them and update their status honestly.
 
-Phase D has three roles:
+Phase D has four roles:
 
 1. establish the first stabilized baseline after Phases B/C, before retrieval/consolidation rewrites;
 2. produce the measured gap taxonomy that prioritizes Phases E-G/H;
-3. provide repeatable benchmark slices that must be re-run after meaningful retrieval, temporal/entity, consolidation, conflict, privacy/reporting, or multimodal/policy changes.
+3. separate raw retrieval quality, approved-memory behavior, advisory/candidate recall, answer-eval quality, and latency/cost so one weak score is not misdiagnosed;
+4. provide repeatable benchmark slices that must be re-run after meaningful retrieval, temporal/entity, consolidation, conflict, privacy/reporting, or multimodal/policy changes.
 
 Do not postpone all benchmarking until the end. Waiting until the end would hide which improvements actually moved the metrics. Do not benchmark immediately on a dirty or pre-stabilized worktree either; the early baseline starts only after Phase A is reconciled and Phase B plus the minimal Phase C prerequisites are complete.
+
+Authority-mode measurement rule:
+
+Phase D must not treat ShyftR as a single undifferentiated benchmark mode. Every benchmark synthesis and follow-on backlog should distinguish whether a miss came from retrieval mechanics, answer generation/evaluation, policy/review gating, candidate exclusion, or benchmark-adapter simplification. At minimum, reports should label which of these modes was used or explicitly explain why the mode was not available yet:
+
+- benchmark-index mode: fixture-safe indexed conversation material used for controlled retrieval tests;
+- approved-memory mode: only reviewed durable memories are eligible for retrieval/pack inclusion;
+- candidate/advisory mode: lower-trust candidates or proposals may be retrieved as background with trust labels;
+- pack/loadout mode: the actual ShyftR bounded pack path with provenance, confidence, trust tier, and stale/conflict handling;
+- direct-ingest comparator mode: comparator behavior where all conversation input is treated as searchable memory, documented as a fairness caveat rather than adopted as ShyftR durable-memory doctrine.
+
+The review gate is not a hot-path human gate for memory lookup. It is an authority boundary for durable memory mutation. If a benchmark underperforms, the improvement backlog must say whether review-gated promotion actually reduced eligible recall, or whether the result came from retrieval/indexing, adapter limits, answer-eval, top-k, chunking, or comparator configuration.
 
 ### D0. Phase 14 registry refresh after B/C changes
 
@@ -648,7 +718,7 @@ PYTHONPATH=.:src python scripts/run_memory_benchmark.py \
   --run-id phaseD-simple-baseline-smoke \
   --output reports/benchmarks/phaseD-simple-baseline-smoke.json \
   --include-simple-bm25 \
-  --top-k-cutoffs 1,3,5 \
+  --top-k 1,3,5 \
   --enable-answer-eval
 ```
 
@@ -682,7 +752,7 @@ PYTHONPATH=.:src python scripts/run_memory_benchmark.py \
   --output reports/benchmarks/phaseD-mem0-oss-fixture.json \
   --include-mem0-oss \
   --include-simple-bm25 \
-  --top-k-cutoffs 1,3,5 \
+  --top-k 1,3,5 \
   --enable-answer-eval
 ```
 
@@ -717,7 +787,7 @@ PYTHONPATH=.:src python scripts/run_memory_benchmark.py \
   --fixture-format shyftr-fixture \
   --run-id <RUN_ID>-longmemeval-dryrun \
   --output reports/benchmarks/<RUN_ID>-longmemeval-dryrun.json \
-  --top-k-cutoffs 1,3,5,10 \
+  --top-k 1,3,5,10 \
   --limit-questions 10 \
   --isolate-per-case \
   --timeout-seconds 300 \
@@ -793,7 +863,17 @@ Required categories:
 - answerer/judge limitation;
 - privacy/export block;
 - latency/indexing bottleneck;
+- review-gate / authority-mode ablation gap;
+- candidate/advisory retrieval gap;
+- benchmark-adapter simplification caveat;
 - comparator fairness caveat.
+
+Required authority-mode ablation notes:
+
+- Identify the ShyftR mode used for each run: benchmark-index, approved-memory, candidate/advisory, pack/loadout, or mixed/unsupported.
+- For retrieval misses, classify whether the needed evidence was absent from the input mapping, present but unindexed, indexed but low-ranked, present only as an unapproved candidate/proposal, suppressed by lifecycle/privacy/review policy, or available but not used by the answerer.
+- For comparator wins, state whether the comparator used direct-ingest searchable memory that ShyftR intentionally would not promote without review.
+- For ShyftR losses, propose one of: retrieval substrate fix, authority-mode benchmark addition, candidate/advisory retrieval experiment, consolidation/promotion change, answer-eval fix, or comparator-fairness note.
 
 Verification:
 
@@ -802,7 +882,7 @@ test -f docs/benchmarks/phase14-improvement-backlog.md
 python - <<'PY'
 from pathlib import Path
 t=Path('docs/benchmarks/phase14-improvement-backlog.md').read_text().lower()
-for s in ['retrieval', 'entity', 'temporal', 'privacy', 'latency']:
+for s in ['retrieval', 'entity', 'temporal', 'privacy', 'latency', 'authority', 'candidate', 'adapter']:
     assert s in t
 print('backlog shape ok')
 PY
@@ -816,10 +896,17 @@ Recurring benchmark rule:
 
 - After Phase E, re-run the retrieval-focused benchmark slice: synthetic-mini, LOCOMO-mini, LongMemEval dry/scaled if available, plus ShyftR/no-memory/simple baseline/mem0 OSS where available.
 - After Phase F, re-run temporal/entity-heavy slices: LongMemEval temporal and knowledge-update classes, LOCOMO temporal/entity questions, and any relation-fixture tests.
-- After Phase G, re-run continuity/consolidation-sensitive slices and compare pack compactness, useful context per token, and support coverage.
+- After Phase G, re-run continuity/consolidation-sensitive slices and compare pack compactness, useful context per token, support coverage, and approved-memory versus candidate/advisory recall.
 - After Phase H, re-run contradiction/knowledge-update/conflict slices and report abstention or uncertainty behavior separately from plain accuracy.
 - After Phase I, re-run safety/privacy/reporting gates and any benchmark reports affected by redaction, consent, retention, export, or API posture changes.
 - After Phase J, run multimodal/policy-specific fixtures only if those capabilities actually landed.
+
+Authority-mode recurring rule:
+
+- After Phase E, compare benchmark-index retrieval against pack/loadout retrieval where available, so retrieval-substrate changes are not only measured through the simplified benchmark adapter.
+- After Phase G, add approved-memory and candidate/advisory ablations to show whether review-gated consolidation improves durable-memory quality without hiding useful candidate context.
+- After Phase H, preserve uncertainty/conflict labels in the ablation reports so candidate/advisory recall is not mistaken for approved durable truth.
+- After Phase I, rerun any authority-mode report touched by privacy, sensitivity, export, retention, or consent changes.
 
 Final comparison pass:
 
@@ -834,6 +921,7 @@ The final pass should include, as available and approved:
 - LongMemEval dry/scaled or full approved local run;
 - LOCOMO dry/scaled run;
 - BEAM small subset with CC BY-SA 4.0 attribution metadata;
+- authority-mode ablation summary covering benchmark-index, approved-memory, candidate/advisory, and pack/loadout modes where implemented;
 - pre/post comparison against the earliest Phase D stabilized baseline.
 
 The final pass is not needed only if the recurring loop already produced an equivalent comparison after the last material implementation change and no public claim/report needs a fresh end-of-program bundle.
@@ -978,12 +1066,43 @@ RED tests:
 3. Weight config is versioned and reported.
 4. Same inputs produce deterministic order.
 5. Reranker can be evaluated offline against fixture relevance labels.
+6. Operator-visible comparison output shows which retrieval modes were tried, selected, skipped, or unavailable.
+7. Pack/debug and benchmark reports include per-query routing metadata without leaking private text.
 
 Verification:
 
 ```bash
 PYTHONPATH=.:src pytest -q tests/test_hybrid_reranker_contract.py tests/test_benchmark_metrics.py
 ```
+
+### E5. Retrieval-mode operator productization
+
+Objective: absorb AgentMemory-inspired retrieval-mode ergonomics after the substrate is stable, making sparse/vector/hybrid/query-expansion choices inspectable without inventing new benchmark claims.
+
+Likely files:
+
+- `src/shyftr/retrieval/*.py`
+- `src/shyftr/pack.py`
+- `src/shyftr/provider/memory.py`
+- `src/shyftr/benchmarks/runner.py`
+- `docs/concepts/storage-retrieval-learning.md`
+- tests near retrieval/pack/benchmark reporting
+
+RED tests:
+
+1. A retrieval-mode comparison call returns sparse, vector, hybrid, and skipped/unavailable modes with reason fields.
+2. Per-query routing metadata records selected mode, fallback mode, backend metadata, top-k, trust filters, and whether candidates were included.
+3. CLI/MCP/HTTP/console surfaces expose the same read-only routing metadata where those surfaces exist.
+4. Benchmark reports persist retrieval-mode metadata so Phase D ablations can separate retrieval mechanics from authority-mode policy.
+5. Missing optional backends do not crash productized comparison output.
+
+Verification:
+
+```bash
+PYTHONPATH=.:src pytest -q tests/test_hybrid_reranker_contract.py tests/test_pack.py tests/test_benchmark_metrics.py
+```
+
+Stop boundary: operator-visible retrieval selection and comparison metadata only; graph-temporal semantics remain Phase F and no superiority claim is allowed without Phase D evidence.
 
 ## 10. Phase F — temporal, entity, and relation memory
 
@@ -1109,7 +1228,7 @@ PYTHONPATH=.:src pytest -q tests/test_relation_graph_sidecar.py
 
 ### F4. Temporal/entity benchmark slice
 
-Objective: measure whether F0-F3 improve actual failures.
+Objective: measure whether F0-F3 improve actual failures. Include AgentMemory-inspired graph-temporal reasoning surfaces only as measured retrieval/debug outputs, not as a separate unbenchmarked productization track.
 
 Steps:
 
@@ -1248,7 +1367,37 @@ PYTHONPATH=.:src pytest -q \
 
 Stop boundary: context compaction is either integrated under the contract or left as explicitly deferred scratch.
 
-### G4. Causal outcome memory
+### G4. Opt-in runtime evidence hooks and branch-aware working context
+
+Objective: absorb AgentMemory-inspired ambient hooks and branch/fork working memory only after consolidation contracts exist.
+
+Likely files:
+
+- `src/shyftr/live_context.py`
+- `src/shyftr/continuity.py`
+- `src/shyftr/consolidation.py`
+- `src/shyftr/policy.py`
+- CLI/MCP/HTTP surface files only after core behavior is tested
+- create `tests/test_runtime_evidence_hooks.py` or adjacent consolidation/live-context tests
+
+RED tests:
+
+1. Hooks are disabled by default and produce no ledger writes until explicitly configured.
+2. Session-start/session-end/tool-use/failure/compaction events route to live context, continuity feedback, episode proposals, or memory candidates according to policy.
+3. Hook-generated records never become approved durable memory without review-gated acceptance.
+4. Branch/fork working context stays separate from canonical approved memory and carries parent/branch identifiers.
+5. Merging or closing a branch writes reviewable proposals/checkpoints, not silent durable mutation.
+6. Replay/debug output can reconstruct branch-local working context without leaking private text in normal mode.
+
+Verification:
+
+```bash
+PYTHONPATH=.:src pytest -q tests/test_runtime_evidence_hooks.py tests/test_live_context.py tests/test_continuity.py tests/test_consolidation_contract.py
+```
+
+Stop boundary: opt-in hooks and branch-aware working state only; no always-on ambient capture, no prompt capture without explicit privacy policy, and no auto-promotion.
+
+### G5. Causal outcome memory
 
 Objective: store action → context → outcome trajectories and distill procedural patterns.
 
@@ -1482,6 +1631,39 @@ Verification:
 PYTHONPATH=.:src pytest -q tests/test_local_api_auth_boundary.py tests/test_server.py
 ```
 
+### I4. Operations health and recovery surfaces
+
+Objective: absorb AgentMemory-inspired service-grade operations plane work after privacy/export/auth contracts are safe.
+
+Likely files:
+
+- `src/shyftr/backup.py`
+- `src/shyftr/ledger_verify.py`
+- `src/shyftr/observability.py`
+- `src/shyftr/readiness.py`
+- `src/shyftr/cli.py`
+- `src/shyftr/server.py`
+- `src/shyftr/mcp_server.py`
+- `docs/api.md`, `docs/mcp.md`, `SECURITY.md`
+- create `tests/test_operations_health_surfaces.py` if no adjacent test exists
+
+RED tests:
+
+1. Diagnostics/health surfaces report ledger verification, readiness, backup/export/import availability, and privacy posture without exposing private content.
+2. Backup/export/import commands remain local-first and output-guarded.
+3. HTTP/MCP write-capable operations are disabled, dry-run, or auth-gated according to policy.
+4. Health/readiness reports include version/config metadata needed for benchmark and operator closeouts.
+5. Recovery surfaces distinguish audit/read-only inspection from mutation.
+
+Verification:
+
+```bash
+PYTHONPATH=.:src pytest -q tests/test_operations_health_surfaces.py tests/test_server.py tests/test_mcp_server.py
+python scripts/public_readiness_check.py
+```
+
+Stop boundary: operations visibility and safe recovery ergonomics only; no hosted multi-tenant claims and no non-local binding beyond I3 policy.
+
 ## 14. Phase J — multimodal, outcome memory, and adaptive policy learning
 
 Goal: add frontier extensions only after the core state/retrieval/benchmark/governance loop is stable.
@@ -1562,7 +1744,32 @@ Verification:
 PYTHONPATH=.:src pytest -q tests/test_feedback_selection_policy.py tests/test_feedback.py tests/test_outcomes.py
 ```
 
-### J3. Learned policy research spike
+### J3. Team/multi-agent overlay research spike
+
+Objective: decide whether AgentMemory-inspired shared-team memory views and multi-agent provenance overlays belong in the public roadmap, a private-core lane, or future work after Phase I governance is proven.
+
+Create:
+
+- `docs/research/team-multi-agent-overlay-spike.md`
+
+Required sections:
+
+- per-cell authority model and why overlays must not collapse cell boundaries;
+- shared-team view use cases versus durable-memory mutation authority;
+- cross-cell provenance and trust labels;
+- privacy/consent/export dependency on Phase I;
+- proposed public-safe API shape, if any;
+- stop/go/defer decision.
+
+Verification:
+
+```bash
+test -f docs/research/team-multi-agent-overlay-spike.md
+```
+
+Stop boundary: decision doc only; no shared-team write path, cross-cell auto-merge, or hosted/multi-tenant claim.
+
+### J4. Learned policy research spike
 
 Objective: decide whether a MemFactory-style learned policy belongs in the public repo, private core, or future research lane.
 
@@ -1589,15 +1796,15 @@ test -f docs/research/learned-memory-policy-spike.md
 Each phase closeout should create or update one status artifact:
 
 - Phase A: `2026-05-18-shyftr-may18-frontier-roadmap-handoff-packet.md`
-- Phase B: `2026-05-18-shyftr-phase-B-contract-ci-privacy-closeout.md`
+- Phase B: `2026-05-18-shyftr-phase-B-contract-ci-privacy-closeout.md`, including B4 operator-surface parity inventory if executed in the phase.
 - Phase C: `2026-05-18-shyftr-phase-C-materialized-state-indexing-closeout.md`
 - Phase D: `2026-05-18-shyftr-phase-D-benchmark-truth-closeout.md`
-- Phase E: `2026-05-18-shyftr-phase-E-production-retrieval-closeout.md`
+- Phase E: `2026-05-18-shyftr-phase-E-production-retrieval-closeout.md`, including retrieval-mode productization if executed in the phase.
 - Phase F: `2026-05-18-shyftr-phase-F-temporal-entity-relation-closeout.md`
-- Phase G: `2026-05-18-shyftr-phase-G-consolidation-closeout.md`
+- Phase G: `2026-05-18-shyftr-phase-G-consolidation-closeout.md`, including hook/branch/replay integration if executed in the phase.
 - Phase H: `2026-05-18-shyftr-phase-H-belief-state-closeout.md`
-- Phase I: `2026-05-18-shyftr-phase-I-privacy-consent-service-closeout.md`
-- Phase J: `2026-05-18-shyftr-phase-J-multimodal-policy-closeout.md`
+- Phase I: `2026-05-18-shyftr-phase-I-privacy-consent-service-closeout.md`, including operations health/recovery surfaces if executed in the phase.
+- Phase J: `2026-05-18-shyftr-phase-J-multimodal-policy-closeout.md`, including team/multi-agent overlay decision if executed in the phase.
 
 Each closeout must include:
 
@@ -1660,6 +1867,8 @@ Fast-track exceptions:
 - D2 mem0 fixture run can run after B if it is isolated and fixture-only.
 - I3 local HTTP auth boundary can be moved earlier if any work requires non-local binding.
 - G3 context compaction reconciliation can be moved directly after A if the operator wants to salvage the current dirty worktree first.
+- B4 operator surface parity inventory may run after B0-B3 as documentation/read-only gap analysis, but behavior-heavy parity must stay in its owning phase.
+- I4 operations health/recovery can move earlier only for a narrow safety or recovery need; otherwise keep it after I0-I3.
 
 ## 18. Success criteria for the full program
 
@@ -1678,12 +1887,15 @@ The program is complete only when all of these are true:
 11. temporal valid-time and supersession behavior exists and is evaluated;
 12. entity/relation retrieval exists with review-gated ambiguity handling;
 13. live→carry→episode→semantic/procedural/rule consolidation is explicit and tested;
-14. contradictions produce belief/conflict states rather than silent string overwrites;
-15. export receipts and retention/consent policies are implemented or explicitly deferred by decision docs;
-16. local API auth/bind posture is enforced and documented;
-17. multimodal observation objects exist or are explicitly deferred after a spike;
-18. feedback-driven policy uses recorded outcomes to improve or suppress future selection;
-19. public README/docs claims match actual evidence.
+14. opt-in hooks, branch-aware working context, and replay/debug surfaces are implemented safely or explicitly deferred;
+15. contradictions produce belief/conflict states rather than silent string overwrites;
+16. export receipts and retention/consent policies are implemented or explicitly deferred by decision docs;
+17. local API auth/bind posture is enforced and documented;
+18. operations health/recovery surfaces are implemented safely or explicitly deferred;
+19. multimodal observation objects exist or are explicitly deferred after a spike;
+20. team/multi-agent overlays are decided as public/private/deferred without weakening per-cell authority;
+21. feedback-driven policy uses recorded outcomes to improve or suppress future selection;
+22. public README/docs claims match actual evidence.
 
 ## 19. Immediate next action
 

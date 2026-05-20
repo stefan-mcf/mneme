@@ -116,6 +116,19 @@ def _validate_cell_id(cell_id: str) -> None:
         raise ValueError("cell_id must be a single safe path segment")
 
 
+def read_cell_id(cell: PathLike) -> str:
+    """Read cell_id from the canonical Cell manifest."""
+    cell_path = Path(cell)
+    manifest_path = cell_path / "config" / "cell_manifest.json"
+    if not manifest_path.exists():
+        raise ValueError(f"Cell manifest does not exist: {manifest_path}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    cell_id = manifest.get("cell_id")
+    if not cell_id:
+        raise ValueError("Cell manifest is missing cell_id")
+    return str(cell_id)
+
+
 def init_cell(root: PathLike, cell_id: str, cell_type: str = "domain") -> Path:
     """Create an idempotent ShyftR Cell layout under root/cell_id."""
     _validate_cell_id(cell_id)

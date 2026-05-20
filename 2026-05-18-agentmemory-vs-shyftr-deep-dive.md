@@ -1,0 +1,251 @@
+# AgentMemory vs ShyftR deep dive
+
+## Scope and method
+- Source-grounded audit of AgentMemory repo surfaces under `/tmp/agentmemory`.
+- Comparison targets in ShyftR under `/Users/stefan/ShyftR/src/shyftr`.
+- Evidence style: file path + symbol/registration line.
+
+## AgentMemory at a glance
+- `mem::*` registrations found: **124**
+- `api::*` registrations found: **121**
+- MCP registry tool descriptors parsed: **51**
+- MCP dispatch cases parsed: **54**
+- README claims include 51 MCP tools and 12 auto hooks (`/tmp/agentmemory/README.md`).
+
+## What AgentMemory excels at over current ShyftR
+- **Surface-area completeness:** AgentMemory exposes a much broader operator surface across direct memory verbs, HTTP API endpoints, and MCP tools. The repo is opinionated about shipping the same capability through multiple access channels rather than keeping most advanced behavior as internal modules.
+- **Operational memory as a product surface:** It productizes day-to-day agent memory operations: remember/forget, sliding windows, working memory, leases, slots, signals, sentinels, retention, disk-size management, file indexing, image refs, and migration/export tools. ShyftR has stronger substrate concepts, but fewer ergonomic operator verbs.
+- **Integrated recall stack:** AgentMemory combines keyword, vector, hybrid, smart search, query expansion, graph retrieval, temporal graph, branch-aware recall, and vision search as first-class callable surfaces. ShyftR has strong retrieval internals and evaluation machinery, but fewer first-class retrieval modes exposed as user-facing tools/APIs.
+- **API-first packaging:** AgentMemory has a very large `api::*` HTTP trigger layer, making the system easier to embed in external apps, dashboards, and remote runtimes without MCP-only coupling.
+- **MCP readiness and interoperability:** The MCP registry/dispatch layer is broad and explicit. This lowers integration friction with external agent hosts and makes capability discovery easier.
+- **Autonomous hooks / background adaptation:** The hooks package and README-advertised auto hooks show a bias toward always-on adaptation around session start/end, tool use, prompt submission, compaction, and notifications. ShyftR is more review-gated and explicit, which is safer, but less ambiently helpful.
+- **Memory compression and consolidation pipeline depth:** AgentMemory has multiple distinct surfaces for compression, file compression, synthetic compression, flow compression, consolidation, crystallization, enrichment, snapshots, replay, and temporal summaries. ShyftR has continuity/live-context/compaction foundations, but AgentMemory makes more of the compaction toolchain directly callable.
+- **Team and multi-actor semantics:** AgentMemory includes team/team-profile/team-metrics and mesh/frontier/branch-aware surfaces that imply collaborative or multi-agent operational memory beyond a single cell abstraction.
+- **Governance and privacy as callable operations:** Instead of treating governance/privacy only as implementation modules, AgentMemory exposes audit, diagnostics, governance, privacy, verify, and retention operations as explicit product affordances.
+- **Import/export and replay ergonomics:** Checkpoints, replay, snapshots, export/import, migrations, and obsidian export make it easier to inspect, move, and operationalize memory outside the core runtime.
+
+## Where ShyftR is already stronger / more frontier
+- **Review-gated evolution and policy authority:** ShyftR has a clearer reviewed-memory doctrine: evidence -> candidate -> memory -> pattern -> rule, plus proposal/review/evolution surfaces. AgentMemory is richer operationally, but ShyftR is more explicit about authority boundaries and what the runtime may apply automatically.
+- **Continuity and resume-state discipline:** ShyftR already has explicit carry-state checkpoints and resume reconstruction (`live_context.py`) rather than only generic checkpoints. That gives it a cleaner path to trustworthy session continuation.
+- **Frontier simulation / graph / audit primitives:** ShyftR already has frontier simulation and graph edge primitives (`frontier.py`) plus audit summaries and review surfaces; these are promising substrate-level primitives for higher-order reasoning rather than only memory CRUD.
+- **Benchmarking rigor:** ShyftR has an unusually serious benchmark/evaluation track (LongMemEval, LOCOMO, BEAM adapters, answer-eval, evaluation bundle) compared with typical memory repos.
+- **Cell model and role separation:** ShyftR's explicit memory/carry/live-context separation is conceptually cleaner than a single broad memory namespace, and gives it a better long-term architecture for governed memory.
+
+## Highest-value features ShyftR should adopt or implement from AgentMemory
+- **1. A broad ergonomic operator surface** — ShyftR should add a cohesive operator-facing layer that exposes high-frequency verbs directly: search modes, recall windows, working-set manipulation, checkpoint inspection, forget/suppress/evict, timeline/replay, and diagnostics. The substrate is already there; the UX surface is thinner than AgentMemory.
+- **2. Multi-surface parity: MCP + HTTP + CLI parity** — ShyftR should make core advanced capabilities reachable through consistent CLI, MCP, and HTTP/console surfaces. AgentMemory wins by making features callable everywhere.
+- **3. First-class retrieval mode selection** — Promote hybrid/sparse/vector/query-expansion/graph/temporal retrieval into explicit public surfaces and evaluable modes, not just internal modules. This should include per-query mode routing and side-by-side retrieval inspection.
+- **4. Rich replay and timeline tooling** — Add a stronger memory timeline/replay layer for session archaeology, reasoning trace reconstruction, and continuity debugging. ShyftR has checkpoints and continuity; AgentMemory is stronger at operational replay ergonomics.
+- **5. Background hooks and ambient learning signals** — Adopt opt-in hooks for session start/end, tool use, prompt submit, pre-compact, post-tool-failure, and task completion so ShyftR can gather richer live evidence with less manual routing.
+- **6. Working-memory / scratchpad APIs** — Add a first-class working-memory layer for temporary, high-churn context that is inspectable, compressible, expirable, and clearly separate from durable memory. ShyftR conceptually has this in live context, but the callable ergonomics should feel closer to AgentMemory's working/sliding-window surfaces.
+- **7. Governance/diagnostics dashboards as product features** — Expose audit, verification, privacy, retention, diagnostics, disk usage, and health-state endpoints directly so operators can manage a memory cell like a service, not only as a library.
+- **8. Export/import ecosystem adapters** — Add official adapters for export/import/snapshot/replay, plus formats for Obsidian and external systems. This improves adoption and portability.
+- **9. Team / multi-agent memory views** — ShyftR should add explicit multi-actor/team memory abstractions on top of cells: team profile, shared recall, agent roles, and mesh-style provenance for who learned what.
+- **10. Compaction pipeline productization** — Take the existing compaction/context work and expose it as a layered callable pipeline: observe -> compress -> consolidate -> crystallize -> checkpoint -> replay. AgentMemory shows the value of making this inspectable.
+- **11. Branch-aware and frontier-aware memory state** — ShyftR should adopt branch/variant-aware memory, scenario forks, and frontier-style experimental memory surfaces so agents can explore alternatives without contaminating approved memory.
+- **12. File/image-aware memory ingestion** — ShyftR should expand resource and multimodal memory toward file indexing, image refs, and vision search. AgentMemory is more operationally multimodal today.
+
+## Recommended adoption order for ShyftR
+- P1: Operator-surface parity for existing primitives — expose advanced ShyftR surfaces consistently via MCP/CLI/HTTP without changing the underlying doctrine.
+- P2: Retrieval productization — explicit mode routing, query expansion, graph/temporal retrieval, replay/timeline inspection, and side-by-side retrieval debugging.
+- P3: Ambient evidence hooks — opt-in hook framework for session/tool/task events feeding live context and proposal generation.
+- P4: Working-memory and branch-aware context — temporary scratch memory, sliding windows, forks, checkpoints, and scenario branches.
+- P5: Service-grade ops plane — diagnostics, privacy, retention, audit, backup/export/import, health, disk/quota views.
+- P6: Team / multi-agent overlays — shared cells, role-specific packs, mesh/team profiles, provenance across actors.
+- P7: Multimodal and frontier extensions — image/file retrieval, stronger graph-temporal reasoning, richer compaction/replay analysis.
+
+## Evidence anchors: AgentMemory mem::* sample
+- `mem::action-create` — `/tmp/agentmemory/src/functions/actions.ts:9`
+- `mem::action-edge-create` — `/tmp/agentmemory/src/functions/actions.ts:149`
+- `mem::action-get` — `/tmp/agentmemory/src/functions/actions.ts:239`
+- `mem::action-list` — `/tmp/agentmemory/src/functions/actions.ts:204`
+- `mem::action-update` — `/tmp/agentmemory/src/functions/actions.ts:100`
+- `mem::audit-query` — `/tmp/agentmemory/src/functions/governance.ts:158`
+- `mem::auto-crystallize` — `/tmp/agentmemory/src/functions/crystallize.ts:148`
+- `mem::auto-forget` — `/tmp/agentmemory/src/functions/auto-forget.ts:24`
+- `mem::auto-page` — `/tmp/agentmemory/src/functions/working-memory.ts:194`
+- `mem::branch-sessions` — `/tmp/agentmemory/src/functions/branch-aware.ts:125`
+- `mem::cascade-update` — `/tmp/agentmemory/src/functions/cascade.ts:8`
+- `mem::checkpoint-create` — `/tmp/agentmemory/src/functions/checkpoints.ts:9`
+- `mem::checkpoint-expire` — `/tmp/agentmemory/src/functions/checkpoints.ts:201`
+- `mem::checkpoint-list` — `/tmp/agentmemory/src/functions/checkpoints.ts:181`
+- `mem::checkpoint-resolve` — `/tmp/agentmemory/src/functions/checkpoints.ts:87`
+- `mem::claude-bridge-read` — `/tmp/agentmemory/src/functions/claude-bridge.ts:77`
+- `mem::claude-bridge-sync` — `/tmp/agentmemory/src/functions/claude-bridge.ts:114`
+- `mem::compress` — `/tmp/agentmemory/src/functions/compress.ts:73`
+- `mem::consolidate` — `/tmp/agentmemory/src/functions/consolidate.ts:70`
+- `mem::consolidate-pipeline` — `/tmp/agentmemory/src/functions/consolidation-pipeline.ts:50`
+- `mem::context` — `/tmp/agentmemory/src/functions/context.ts:38`
+- `mem::core-add` — `/tmp/agentmemory/src/functions/working-memory.ts:39`
+- `mem::core-list` — `/tmp/agentmemory/src/functions/working-memory.ts:85`
+- `mem::core-remove` — `/tmp/agentmemory/src/functions/working-memory.ts:72`
+- `mem::crystal-get` — `/tmp/agentmemory/src/functions/crystallize.ts:133`
+- `mem::crystal-list` — `/tmp/agentmemory/src/functions/crystallize.ts:108`
+- `mem::crystallize` — `/tmp/agentmemory/src/functions/crystallize.ts:23`
+- `mem::detect-worktree` — `/tmp/agentmemory/src/functions/branch-aware.ts:22`
+- `mem::diagnose` — `/tmp/agentmemory/src/functions/diagnostics.ts:35`
+- `mem::differential-state` — `/tmp/agentmemory/src/functions/temporal-graph.ts:355`
+- `mem::enrich` — `/tmp/agentmemory/src/functions/enrich.ts:19`
+- `mem::enrich-session` — `/tmp/agentmemory/src/functions/sliding-window.ts:222`
+- `mem::enrich-window` — `/tmp/agentmemory/src/functions/sliding-window.ts:121`
+- `mem::evict` — `/tmp/agentmemory/src/functions/evict.ts:96`
+- `mem::evolve` — `/tmp/agentmemory/src/functions/relations.ts:129`
+- `mem::expand-query` — `/tmp/agentmemory/src/functions/query-expansion.ts:73`
+- `mem::export` — `/tmp/agentmemory/src/functions/export-import.ts:35`
+- `mem::facet-dimensions` — `/tmp/agentmemory/src/functions/facets.ts:225`
+- `mem::facet-get` — `/tmp/agentmemory/src/functions/facets.ts:168`
+- `mem::facet-query` — `/tmp/agentmemory/src/functions/facets.ts:102`
+- ... plus 84 more `mem::*` registrations in `src/functions/*.ts`.
+
+## Evidence anchors: AgentMemory api::* sample
+- `api::action-create` — `/tmp/agentmemory/src/triggers/api.ts:1642` [POST /agentmemory/actions]
+- `api::action-edge` — `/tmp/agentmemory/src/triggers/api.ts:1732` [POST /agentmemory/actions/edges]
+- `api::action-get` — `/tmp/agentmemory/src/triggers/api.ts:1714` [GET /agentmemory/actions/get]
+- `api::action-list` — `/tmp/agentmemory/src/triggers/api.ts:1696` [GET /agentmemory/actions]
+- `api::action-update` — `/tmp/agentmemory/src/triggers/api.ts:1670` [POST /agentmemory/actions/update]
+- `api::audit` — `/tmp/agentmemory/src/triggers/api.ts:1208` [GET /agentmemory/audit]
+- `api::auto-crystallize` — `/tmp/agentmemory/src/triggers/api.ts:2388` [POST /agentmemory/crystals/auto]
+- `api::auto-forget` — `/tmp/agentmemory/src/triggers/api.ts:991` [POST /agentmemory/auto-forget]
+- `api::branch-detect` — `/tmp/agentmemory/src/triggers/api.ts:2183` [GET /agentmemory/branch/detect]
+- `api::branch-sessions` — `/tmp/agentmemory/src/triggers/api.ts:2213` [GET /agentmemory/branch/sessions]
+- `api::branch-worktrees` — `/tmp/agentmemory/src/triggers/api.ts:2198` [GET /agentmemory/branch/worktrees]
+- `api::cascade-update` — `/tmp/agentmemory/src/triggers/api.ts:2473` [POST /agentmemory/cascade-update]
+- `api::checkpoint-create` — `/tmp/agentmemory/src/triggers/api.ts:1970` [POST /agentmemory/checkpoints]
+- `api::checkpoint-list` — `/tmp/agentmemory/src/triggers/api.ts:2019` [GET /agentmemory/checkpoints]
+- `api::checkpoint-resolve` — `/tmp/agentmemory/src/triggers/api.ts:1995` [POST /agentmemory/checkpoints/resolve]
+- `api::claude-bridge-read` — `/tmp/agentmemory/src/triggers/api.ts:1007` [GET /agentmemory/claude-bridge/read]
+- `api::claude-bridge-sync` — `/tmp/agentmemory/src/triggers/api.ts:1028` [POST /agentmemory/claude-bridge/sync]
+- `api::compress-file` — `/tmp/agentmemory/src/triggers/api.ts:409` [POST /agentmemory/compress-file]
+- `api::config-flags` — `/tmp/agentmemory/src/triggers/api.ts:154`
+- `api::consolidate` — `/tmp/agentmemory/src/triggers/api.ts:760` [POST /agentmemory/consolidate]
+- `api::consolidate-pipeline` — `/tmp/agentmemory/src/triggers/api.ts:1122` [POST /agentmemory/consolidate-pipeline]
+- `api::context` — `/tmp/agentmemory/src/triggers/api.ts:299` [POST /agentmemory/context]
+- `api::crystal-list` — `/tmp/agentmemory/src/triggers/api.ts:2372` [GET /agentmemory/crystals]
+- `api::crystallize` — `/tmp/agentmemory/src/triggers/api.ts:2362` [POST /agentmemory/crystals/create]
+- `api::diagnose` — `/tmp/agentmemory/src/triggers/api.ts:2397` [POST /agentmemory/diagnostics]
+- `api::enrich` — `/tmp/agentmemory/src/triggers/api.ts:661` [POST /agentmemory/enrich]
+- `api::evict` — `/tmp/agentmemory/src/triggers/api.ts:821` [POST /agentmemory/evict]
+- `api::evolve` — `/tmp/agentmemory/src/triggers/api.ts:965` [POST /agentmemory/evolve]
+- `api::export` — `/tmp/agentmemory/src/triggers/api.ts:907` [GET /agentmemory/export]
+- `api::facet-get` — `/tmp/agentmemory/src/triggers/api.ts:2444` [GET /agentmemory/facets]
+- `api::facet-query` — `/tmp/agentmemory/src/triggers/api.ts:2435` [POST /agentmemory/facets/query]
+- `api::facet-stats` — `/tmp/agentmemory/src/triggers/api.ts:2454` [GET /agentmemory/facets/stats]
+- `api::facet-tag` — `/tmp/agentmemory/src/triggers/api.ts:2415` [POST /agentmemory/facets]
+- `api::facet-untag` — `/tmp/agentmemory/src/triggers/api.ts:2425` [POST /agentmemory/facets/remove]
+- `api::file-context` — `/tmp/agentmemory/src/triggers/api.ts:645` [POST /agentmemory/file-context]
+- ... plus 86 more `api::*` registrations in `src/triggers/api.ts`.
+
+## Evidence anchors: AgentMemory MCP tools
+- `memory_recall` — `/tmp/agentmemory/src/mcp/tools-registry.ts:13` -> `` at `src/mcp/server.ts:88`
+- `memory_compress_file` — `/tmp/agentmemory/src/mcp/tools-registry.ts:40` -> `` at `src/mcp/server.ts:139`
+- `memory_save` — `/tmp/agentmemory/src/mcp/tools-registry.ts:55` -> `` at `src/mcp/server.ts:158`
+- `memory_file_history` — `/tmp/agentmemory/src/mcp/tools-registry.ts:83` -> `` at `src/mcp/server.ts:189`
+- `memory_patterns` — `/tmp/agentmemory/src/mcp/tools-registry.ts:98` -> `` at `src/mcp/server.ts:225`
+- `memory_sessions` — `/tmp/agentmemory/src/mcp/tools-registry.ts:108` -> `` at `src/mcp/server.ts:239`
+- `memory_smart_search` — `/tmp/agentmemory/src/mcp/tools-registry.ts:114` -> `` at `src/mcp/server.ts:251`
+- `memory_vision_search` — `/tmp/agentmemory/src/mcp/tools-registry.ts:130` -> `` at `src/mcp/server.ts:278`
+- `memory_timeline` — `/tmp/agentmemory/src/mcp/tools-registry.ts:145` -> `` at `src/mcp/server.ts:304`
+- `memory_profile` — `/tmp/agentmemory/src/mcp/tools-registry.ts:168` -> `` at `src/mcp/server.ts:327`
+- `memory_export` — `/tmp/agentmemory/src/mcp/tools-registry.ts:183` -> `` at `src/mcp/server.ts:348`
+- `memory_relations` — `/tmp/agentmemory/src/mcp/tools-registry.ts:188` -> `` at `src/mcp/server.ts:360`
+- `memory_claude_bridge_sync` — `/tmp/agentmemory/src/mcp/tools-registry.ts:213` -> `` at `src/mcp/server.ts:386`
+- `memory_graph_query` — `/tmp/agentmemory/src/mcp/tools-registry.ts:229` -> `` at `src/mcp/server.ts:420`
+- `memory_consolidate` — `/tmp/agentmemory/src/mcp/tools-registry.ts:248` -> `` at `src/mcp/server.ts:463`
+- `memory_team_share` — `/tmp/agentmemory/src/mcp/tools-registry.ts:262` -> `` at `src/mcp/server.ts:491`
+- `memory_team_feed` — `/tmp/agentmemory/src/mcp/tools-registry.ts:280` -> `` at `src/mcp/server.ts:529`
+- `memory_audit` — `/tmp/agentmemory/src/mcp/tools-registry.ts:290` -> `` at `src/mcp/server.ts:557`
+- `memory_governance_delete` — `/tmp/agentmemory/src/mcp/tools-registry.ts:301` -> `` at `src/mcp/server.ts:582`
+- `memory_snapshot_create` — `/tmp/agentmemory/src/mcp/tools-registry.ts:316` -> `` at `src/mcp/server.ts:617`
+- `memory_action_create` — `/tmp/agentmemory/src/mcp/tools-registry.ts:329` -> `` at `src/mcp/server.ts:645`
+- `memory_action_update` — `/tmp/agentmemory/src/mcp/tools-registry.ts:363` -> `` at `src/mcp/server.ts:680`
+- `memory_frontier` — `/tmp/agentmemory/src/mcp/tools-registry.ts:384` -> `` at `src/mcp/server.ts:703`
+- `memory_next` — `/tmp/agentmemory/src/mcp/tools-registry.ts:400` -> `` at `src/mcp/server.ts:719`
+- `memory_lease` — `/tmp/agentmemory/src/mcp/tools-registry.ts:412` -> `` at `src/mcp/server.ts:734`
+- `memory_routine_run` — `/tmp/agentmemory/src/mcp/tools-registry.ts:437` -> `` at `src/mcp/server.ts:781`
+- `memory_signal_send` — `/tmp/agentmemory/src/mcp/tools-registry.ts:451` -> `` at `src/mcp/server.ts:803`
+- `memory_signal_read` — `/tmp/agentmemory/src/mcp/tools-registry.ts:476` -> `` at `src/mcp/server.ts:830`
+- `memory_checkpoint` — `/tmp/agentmemory/src/mcp/tools-registry.ts:497` -> `` at `src/mcp/server.ts:853`
+- `memory_mesh_sync` — `/tmp/agentmemory/src/mcp/tools-registry.ts:530` -> `` at `src/mcp/server.ts:904`
+- `memory_sentinel_create` — `/tmp/agentmemory/src/mcp/tools-registry.ts:551` -> `` at `src/mcp/server.ts:919`
+- `memory_sentinel_trigger` — `/tmp/agentmemory/src/mcp/tools-registry.ts:576` -> `` at `src/mcp/server.ts:948`
+- `memory_sketch_create` — `/tmp/agentmemory/src/mcp/tools-registry.ts:589` -> `` at `src/mcp/server.ts:971`
+- `memory_sketch_promote` — `/tmp/agentmemory/src/mcp/tools-registry.ts:604` -> `` at `src/mcp/server.ts:992`
+- `memory_crystallize` — `/tmp/agentmemory/src/mcp/tools-registry.ts:617` -> `` at `src/mcp/server.ts:1007`
+- `memory_diagnose` — `/tmp/agentmemory/src/mcp/tools-registry.ts:634` -> `` at `src/mcp/server.ts:1020`
+- `memory_heal` — `/tmp/agentmemory/src/mcp/tools-registry.ts:648` -> `` at `src/mcp/server.ts:1028`
+- `memory_facet_tag` — `/tmp/agentmemory/src/mcp/tools-registry.ts:666` -> `` at `src/mcp/server.ts:1039`
+- `memory_facet_query` — `/tmp/agentmemory/src/mcp/tools-registry.ts:684` -> `` at `src/mcp/server.ts:1049`
+- `memory_verify` — `/tmp/agentmemory/src/mcp/tools-registry.ts:709` -> `` at `src/mcp/server.ts:1070`
+- `memory_lesson_save` — `/tmp/agentmemory/src/mcp/tools-registry.ts:727` -> `` at `src/mcp/server.ts:1078`
+- `memory_lesson_recall` — `/tmp/agentmemory/src/mcp/tools-registry.ts:752` -> `` at `src/mcp/server.ts:1096`
+- `memory_obsidian_export` — `/tmp/agentmemory/src/mcp/tools-registry.ts:770` -> `` at `src/mcp/server.ts:1126`
+- `memory_reflect` — `/tmp/agentmemory/src/mcp/tools-registry.ts:791` -> `` at `src/mcp/server.ts:1109`
+- `memory_insight_list` — `/tmp/agentmemory/src/mcp/tools-registry.ts:806` -> `` at `src/mcp/server.ts:1117`
+- `memory_slot_list` — `/tmp/agentmemory/src/mcp/tools-registry.ts:825` -> `` at `src/mcp/server.ts:1137`
+- `memory_slot_get` — `/tmp/agentmemory/src/mcp/tools-registry.ts:831` -> `` at `src/mcp/server.ts:1145`
+- `memory_slot_create` — `/tmp/agentmemory/src/mcp/tools-registry.ts:842` -> `` at `src/mcp/server.ts:1155`
+- `memory_slot_append` — `/tmp/agentmemory/src/mcp/tools-registry.ts:858` -> `` at `src/mcp/server.ts:1174`
+- `memory_slot_replace` — `/tmp/agentmemory/src/mcp/tools-registry.ts:871` -> `` at `src/mcp/server.ts:1185`
+- `memory_slot_delete` — `/tmp/agentmemory/src/mcp/tools-registry.ts:883` -> `` at `src/mcp/server.ts:1197`
+
+## Evidence anchors: current ShyftR comparables
+- `frontier.py` — `def append_graph_edge` at `/Users/stefan/ShyftR/src/shyftr/frontier.py:176`
+- `frontier.py` — `def list_graph_edges` at `/Users/stefan/ShyftR/src/shyftr/frontier.py:181`
+- `frontier.py` — `def simulate_policy` at `/Users/stefan/ShyftR/src/shyftr/frontier.py:288`
+- `live_context.py` — `def build_carry_state_checkpoint` at `/Users/stefan/ShyftR/src/shyftr/live_context.py:701`
+- `live_context.py` — `def latest_carry_state_checkpoint` at `/Users/stefan/ShyftR/src/shyftr/live_context.py:739`
+- `live_context.py` — `def reconstruct_resume_state` at `/Users/stefan/ShyftR/src/shyftr/live_context.py:751`
+- `console_api.py` — `def spark_review_queue` at `/Users/stefan/ShyftR/src/shyftr/console_api.py:95`
+- `console_api.py` — `def proposal_inbox` at `/Users/stefan/ShyftR/src/shyftr/console_api.py:144`
+- `console_api.py` — `def frontier_review_surfaces` at `/Users/stefan/ShyftR/src/shyftr/console_api.py:164`
+- `console_api.py` — `def pilot_metrics` at `/Users/stefan/ShyftR/src/shyftr/console_api.py:190`
+- `console_api.py` — `def pilot_metrics` at `/Users/stefan/ShyftR/src/shyftr/console_api.py:250`
+- `audit.py` — `def audit_summary` at `/Users/stefan/ShyftR/src/shyftr/audit.py:336`
+- `pack.py` — `def assemble_pack` at `/Users/stefan/ShyftR/src/shyftr/pack.py:635`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:51`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:72`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:111`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:130`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:165`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:199`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:217`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:256`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:264`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:289`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:311`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:322`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:327`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:332`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:336`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:364`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:383`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:403`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:410`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:424`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:436`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:453`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:470`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:487`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:494`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:962`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:966`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:978`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:989`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:997`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1005`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1011`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1017`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1027`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1035`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1042`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1057`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1073`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1087`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1091`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1101`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1159`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1163`
+- `mcp_server.py` — `def ` at `/Users/stefan/ShyftR/src/shyftr/mcp_server.py:1191`
+
+## Bottom line
+AgentMemory is ahead of ShyftR in **operator-productization, API/MCP breadth, retrieval ergonomics, ambient hooks, and day-to-day memory operations**. ShyftR is ahead in **governed memory doctrine, continuity architecture, and benchmark discipline**. The frontier move is not to copy AgentMemory wholesale; it is to layer AgentMemory-grade ergonomics and surface area on top of ShyftR's stronger governed substrate.
